@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2020 the original author or authors.
+ * Copyright 2013-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package org.springframework.cloud.bootstrap.encrypt;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +32,6 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
 import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
@@ -72,7 +69,7 @@ public class EnvironmentDecryptApplicationInitializerTests {
 	public void relaxedBinding() {
 		ConfigurableApplicationContext context = new AnnotationConfigApplicationContext();
 		TestPropertyValues.of("spring.cloud.bootstrap.enabled=true", "FOO_TEXT: {cipher}bar")
-				.applyTo(context.getEnvironment(), TestPropertyValues.Type.SYSTEM_ENVIRONMENT);
+			.applyTo(context.getEnvironment(), TestPropertyValues.Type.SYSTEM_ENVIRONMENT);
 		this.listener.initialize(context);
 		then(context.getEnvironment().getProperty("foo.text")).isEqualTo("bar");
 	}
@@ -81,8 +78,9 @@ public class EnvironmentDecryptApplicationInitializerTests {
 	public void propertySourcesOrderedCorrectly() {
 		ConfigurableApplicationContext context = new AnnotationConfigApplicationContext();
 		TestPropertyValues.of("spring.cloud.bootstrap.enabled=true", "foo: {cipher}bar").applyTo(context);
-		context.getEnvironment().getPropertySources()
-				.addFirst(new MapPropertySource("test_override", Collections.singletonMap("foo", "{cipher}spam")));
+		context.getEnvironment()
+			.getPropertySources()
+			.addFirst(new MapPropertySource("test_override", Map.of("foo", "{cipher}spam")));
 		this.listener.initialize(context);
 		then(context.getEnvironment().getProperty("foo")).isEqualTo("spam");
 	}
@@ -119,20 +117,19 @@ public class EnvironmentDecryptApplicationInitializerTests {
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	public void indexedPropertiesCopied() {
 		ConfigurableApplicationContext context = new AnnotationConfigApplicationContext();
 		// tests that collections in another property source don't get copied into
 		// "decrypted" property source
 		TestPropertyValues
-				.of("spring.cloud.bootstrap.enabled=true", "yours[0].someValue: yourFoo", "yours[1].someValue: yourBar")
-				.applyTo(context);
+			.of("spring.cloud.bootstrap.enabled=true", "yours[0].someValue: yourFoo", "yours[1].someValue: yourBar")
+			.applyTo(context);
 
 		// collection with some encrypted keys and some not encrypted
 		TestPropertyValues
-				.of("mine[0].someValue: Foo", "mine[0].someKey: {cipher}Foo0", "mine[1].someValue: Bar",
-						"mine[1].someKey: {cipher}Bar1", "nonindexed: nonindexval")
-				.applyTo(context.getEnvironment(), Type.MAP, "combinedTest");
+			.of("mine[0].someValue: Foo", "mine[0].someKey: {cipher}Foo0", "mine[1].someValue: Bar",
+					"mine[1].someKey: {cipher}Bar1", "nonindexed: nonindexval")
+			.applyTo(context.getEnvironment(), Type.MAP, "combinedTest");
 		this.listener.initialize(context);
 
 		then(context.getEnvironment().getProperty("mine[0].someValue")).isEqualTo("Foo");
@@ -142,10 +139,11 @@ public class EnvironmentDecryptApplicationInitializerTests {
 		then(context.getEnvironment().getProperty("yours[0].someValue")).isEqualTo("yourFoo");
 		then(context.getEnvironment().getProperty("yours[1].someValue")).isEqualTo("yourBar");
 
-		MutablePropertySources propertySources = context.getEnvironment().getPropertySources();
-		PropertySource<Map<?, ?>> decrypted = (PropertySource<Map<?, ?>>) propertySources
-				.get(DECRYPTED_PROPERTY_SOURCE_NAME);
-		then(decrypted.getSource().size()).as("decrypted property source had wrong size").isEqualTo(4);
+		var decryptedPropertySource = context.getEnvironment().getPropertySources().get("decrypted");
+		then(decryptedPropertySource).isNotNull();
+		var source = decryptedPropertySource.getSource();
+		then(source).isInstanceOf(Map.class);
+		then(((Map<?, ?>) source).size()).as("decrypted property source had wrong size").isEqualTo(4);
 	}
 
 	@Test
@@ -173,16 +171,13 @@ public class EnvironmentDecryptApplicationInitializerTests {
 		EnvironmentDecryptApplicationInitializer initializer = new EnvironmentDecryptApplicationInitializer(
 				Encryptors.noOpText());
 
-		MapPropertySource devProfile = new MapPropertySource("dev-profile",
-				Collections.singletonMap("key", "{cipher}value1"));
+		MapPropertySource devProfile = new MapPropertySource("dev-profile", Map.of("key", "{cipher}value1"));
 
-		MapPropertySource defaultProfile = new MapPropertySource("default-profile",
-				Collections.singletonMap("key", "{cipher}value2"));
+		MapPropertySource defaultProfile = new MapPropertySource("default-profile", Map.of("key", "{cipher}value2"));
 
-		CompositePropertySource cps = mock(CompositePropertySource.class);
-		when(cps.getName()).thenReturn("mock-composite-source");
-		when(cps.getPropertyNames()).thenReturn(devProfile.getPropertyNames());
-		when(cps.getPropertySources()).thenReturn(Arrays.asList(devProfile, defaultProfile));
+		CompositePropertySource cps = new CompositePropertySource("mock-composite-source");
+		cps.addPropertySource(devProfile);
+		cps.addPropertySource(defaultProfile);
 		ctx.getEnvironment().getPropertySources().addLast(cps);
 
 		initializer.initialize(ctx);
@@ -193,8 +188,9 @@ public class EnvironmentDecryptApplicationInitializerTests {
 	public void propertySourcesOrderedCorrectlyWithUnencryptedOverrides() {
 		ConfigurableApplicationContext context = new AnnotationConfigApplicationContext();
 		TestPropertyValues.of("spring.cloud.bootstrap.enabled=true", "foo: {cipher}bar").applyTo(context);
-		context.getEnvironment().getPropertySources()
-				.addFirst(new MapPropertySource("test_override", Collections.singletonMap("foo", "spam")));
+		context.getEnvironment()
+			.getPropertySources()
+			.addFirst(new MapPropertySource("test_override", Map.of("foo", "spam")));
 		this.listener.initialize(context);
 		then(context.getEnvironment().getProperty("foo")).isEqualTo("spam");
 	}
@@ -212,15 +208,15 @@ public class EnvironmentDecryptApplicationInitializerTests {
 		ConfigurableApplicationContext context = new AnnotationConfigApplicationContext();
 		TestPropertyValues.of("spring.cloud.bootstrap.enabled=true").applyTo(context);
 		CompositePropertySource bootstrap = new CompositePropertySource(BOOTSTRAP_PROPERTY_SOURCE_NAME);
-		bootstrap.addPropertySource(
-				new MapPropertySource("configService", Collections.singletonMap("foo", "{cipher}bar")));
+		bootstrap.addPropertySource(new MapPropertySource("configService", Map.of("foo", "{cipher}bar")));
 		context.getEnvironment().getPropertySources().addFirst(bootstrap);
 
 		Map<String, Object> props = new HashMap<>();
 		props.put("foo2", "{cipher}bar2");
 		props.put("bar", "{cipher}baz");
-		context.getEnvironment().getPropertySources().addAfter(BOOTSTRAP_PROPERTY_SOURCE_NAME,
-				new MapPropertySource("remote", props));
+		context.getEnvironment()
+			.getPropertySources()
+			.addAfter(BOOTSTRAP_PROPERTY_SOURCE_NAME, new MapPropertySource("remote", props));
 
 		initializer.initialize(context);
 
@@ -236,8 +232,9 @@ public class EnvironmentDecryptApplicationInitializerTests {
 		verify(encryptor, times(2)).decrypt("baz");
 
 		// Check if all encrypted properties are still decrypted
-		PropertySource<?> decryptedBootstrap = context.getEnvironment().getPropertySources()
-				.get(DECRYPTED_BOOTSTRAP_PROPERTY_SOURCE_NAME);
+		PropertySource<?> decryptedBootstrap = context.getEnvironment()
+			.getPropertySources()
+			.get(DECRYPTED_BOOTSTRAP_PROPERTY_SOURCE_NAME);
 		then(decryptedBootstrap.getProperty("foo")).isEqualTo("bar");
 
 		PropertySource<?> decrypted = context.getEnvironment().getPropertySources().get(DECRYPTED_PROPERTY_SOURCE_NAME);
@@ -252,9 +249,10 @@ public class EnvironmentDecryptApplicationInitializerTests {
 		when(encryptor.decrypt("bar2")).thenReturn("bar2");
 		EnvironmentDecryptApplicationInitializer initializer = new EnvironmentDecryptApplicationInitializer(encryptor);
 		TestPropertyValues.of("spring.cloud.bootstrap.enabled=true", "foo: {cipher}bar", "foo2: {cipher}bar2")
-				.applyTo(context);
-		context.getEnvironment().getPropertySources()
-				.addFirst(new MapPropertySource("test_override", Collections.singletonMap("foo", "spam")));
+			.applyTo(context);
+		context.getEnvironment()
+			.getPropertySources()
+			.addFirst(new MapPropertySource("test_override", Map.of("foo", "spam")));
 		initializer.initialize(context);
 		then(context.getEnvironment().getProperty("foo")).isEqualTo("spam");
 		then(context.getEnvironment().getProperty("foo2")).isEqualTo("bar2");
