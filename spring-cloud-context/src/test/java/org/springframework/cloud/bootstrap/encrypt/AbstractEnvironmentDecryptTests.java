@@ -70,12 +70,10 @@ public class AbstractEnvironmentDecryptTests {
 
 	@Test
 	void relaxedBinding() {
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-1",
-					Map.of("foo.text", "{cipher}foo1", "bar_text", "bar1", "baz[0].text", "baz1")));
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-2",
-					Map.of("FOO_TEXT", "{cipher}foo2", "BAR_TEXT", "{cipher}bar2", "BAZ[0].TEXT", "{cipher}baz2")));
+		environment.getPropertySources().addFirst(new MapPropertySource("source-1",
+				Map.of("foo.text", "{cipher}foo1", "bar_text", "bar1", "baz[0].text", "baz1")));
+		environment.getPropertySources().addFirst(new MapPropertySource("source-2",
+				Map.of("FOO_TEXT", "{cipher}foo2", "BAR_TEXT", "{cipher}bar2", "BAZ[0].TEXT", "{cipher}baz2")));
 
 		decrypt();
 
@@ -89,7 +87,7 @@ public class AbstractEnvironmentDecryptTests {
 		environment.getPropertySources().addFirst(new MapPropertySource("source-1", Map.of("foo", "{cipher}bar")));
 
 		assertThatThrownBy(() -> decrypt(Encryptors.text("deadbeef", "AFFE37")))
-			.isInstanceOf(IllegalStateException.class);
+				.isInstanceOf(IllegalStateException.class);
 
 		// Assert logs contain warning even when exception thrown
 		then(output.toString()).contains("Cannot decrypt: key=foo");
@@ -110,14 +108,12 @@ public class AbstractEnvironmentDecryptTests {
 
 	@Test
 	void indexedPropertiesAreCopied() {
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-1",
-					Map.of("yours[0].someValue", "yourFoo", "yours[1].someValue", "yourBar")));
+		environment.getPropertySources().addFirst(new MapPropertySource("source-1",
+				Map.of("yours[0].someValue", "yourFoo", "yours[1].someValue", "yourBar")));
 		// collection with some encrypted keys and some not encrypted
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-2",
-					Map.of("mine[0].someValue", "Foo", "mine[0].someKey", "{cipher}Foo0", "mine[1].someValue", "Bar",
-							"mine[1].someKey", "{cipher}Bar1", "nonindexed", "nonindexval")));
+		environment.getPropertySources().addFirst(
+				new MapPropertySource("source-2", Map.of("mine[0].someValue", "Foo", "mine[0].someKey", "{cipher}Foo0",
+						"mine[1].someValue", "Bar", "mine[1].someKey", "{cipher}Bar1", "nonindexed", "nonindexval")));
 
 		decrypt();
 
@@ -132,11 +128,10 @@ public class AbstractEnvironmentDecryptTests {
 
 	@Test
 	void indexedPropertiesAreCopiedOnlyIfEncrypted() {
+		environment.getPropertySources().addFirst(new MapPropertySource("source-1",
+				Map.of("a[0]", "a0", "a[1]", "{cipher}a1", "b[0]", "b0", "b[1]", "b1")));
 		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-1",
-					Map.of("a[0]", "a0", "a[1]", "{cipher}a1", "b[0]", "b0", "b[1]", "b1")));
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-2", Map.of("b[0]", "updated-b0", "b[1]", "updated-b1")));
+				.addFirst(new MapPropertySource("source-2", Map.of("b[0]", "updated-b0", "b[1]", "updated-b1")));
 
 		decrypt();
 
@@ -177,7 +172,7 @@ public class AbstractEnvironmentDecryptTests {
 	@Test
 	void decryptOnlyIfNotOverridden() {
 		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-1", Map.of("foo", "{cipher}bar", "foo2", "{cipher}bar2")));
+				.addFirst(new MapPropertySource("source-1", Map.of("foo", "{cipher}bar", "foo2", "{cipher}bar2")));
 		environment.getPropertySources().addFirst(new MapPropertySource("source-2", Map.of("foo", "spam")));
 
 		decrypt();
@@ -188,11 +183,10 @@ public class AbstractEnvironmentDecryptTests {
 
 	@Test
 	void indexedPropertiesAreHandledCorrectly() {
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-1",
-					Map.of("list[0].plain", "good", "list[0].cipher", "{cipher}bad")));
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-2", Map.of("list[0].plain", "well", "list[0].cipher", "worse")));
+		environment.getPropertySources().addFirst(
+				new MapPropertySource("source-1", Map.of("list[0].plain", "good", "list[0].cipher", "{cipher}bad")));
+		environment.getPropertySources().addFirst(
+				new MapPropertySource("source-2", Map.of("list[0].plain", "well", "list[0].cipher", "worse")));
 
 		decrypt();
 
@@ -203,12 +197,11 @@ public class AbstractEnvironmentDecryptTests {
 	@Test
 	void anonymousIndexedPropertiesAreHandledCorrectly() {
 		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-1", Map.of("[0].plain", "good", "[0].cipher", "{cipher}bad")));
+				.addFirst(new MapPropertySource("source-1", Map.of("[0].plain", "good", "[0].cipher", "{cipher}bad")));
+		environment.getPropertySources().addFirst(new MapPropertySource("source-2",
+				Map.of("[0].plain", "well", "[0].cipher", "{cipher}worse", "another[1].text", "old")));
 		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-2",
-					Map.of("[0].plain", "well", "[0].cipher", "{cipher}worse", "another[1].text", "old")));
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-3", Map.of("another[1].text", "updated")));
+				.addFirst(new MapPropertySource("source-3", Map.of("another[1].text", "updated")));
 
 		decrypt();
 
@@ -219,9 +212,8 @@ public class AbstractEnvironmentDecryptTests {
 
 	@Test
 	void indexedPropertiesWithSimilarNamesAreHandledCorrectly() {
-		environment.getPropertySources()
-			.addFirst(new MapPropertySource("source-1",
-					Map.of("foo[0]", "plain", "foo[1]", "{cipher}cipher", "fooBar[0]", "old")));
+		environment.getPropertySources().addFirst(new MapPropertySource("source-1",
+				Map.of("foo[0]", "plain", "foo[1]", "{cipher}cipher", "fooBar[0]", "old")));
 		environment.getPropertySources().addFirst(new MapPropertySource("source-2", Map.of("fooBar[0]", "updated")));
 
 		decrypt();
@@ -252,7 +244,7 @@ public class AbstractEnvironmentDecryptTests {
 	private void decrypt(TextEncryptor encryptor) {
 		var decrypted = decryptor.decrypt(encryptor, environment.getPropertySources());
 		environment.getPropertySources()
-			.addFirst(new SystemEnvironmentPropertySource(DECRYPTED_PROPERTY_SOURCE_NAME, decrypted));
+				.addFirst(new SystemEnvironmentPropertySource(DECRYPTED_PROPERTY_SOURCE_NAME, decrypted));
 	}
 
 }

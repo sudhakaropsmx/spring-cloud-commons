@@ -139,7 +139,7 @@ public class EnvironmentDecryptApplicationInitializer extends AbstractEnvironmen
 		while (parent != null) {
 			if (parent.getEnvironment() instanceof ConfigurableEnvironment) {
 				((ConfigurableEnvironment) parent.getEnvironment()).getPropertySources()
-					.remove(DECRYPTED_PROPERTY_SOURCE_NAME);
+						.remove(DECRYPTED_PROPERTY_SOURCE_NAME);
 			}
 			parent = parent.getParent();
 		}
